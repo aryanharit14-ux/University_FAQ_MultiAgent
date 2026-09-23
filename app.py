@@ -1,7 +1,11 @@
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, session
 from dotenv import load_dotenv
 
 load_dotenv()
+
+import os
+from auth import auth_bp, login_required
+from db import init_db
 
 from agents.router import (
     handle_question,
@@ -15,13 +19,29 @@ app = Flask(
     static_folder="frontend/static",
 )
 
+secret = os.environ.get("SECRET_KEY")
+if not secret:
+    raise RuntimeError("SECRET_KEY environment variable is not set!")
+
+app.secret_key = secret
+
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
+
+init_db()
+app.register_blueprint(auth_bp)
+
 
 @app.route("/")
+@login_required
 def index():
     return render_template("index.html")
 
 
 @app.route("/api/ask", methods=["POST"])
+@login_required
 def ask():
     try:
         data = request.get_json(silent=True)
