@@ -1,10 +1,10 @@
-from functools import wraps
+﻿from functools import wraps
+import re
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from db import create_user, get_user_by_email
-
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -62,8 +62,20 @@ def signup():
             flash("Passwords do not match.")
             return render_template("signup.html")
 
-        if len(password) < 6:
-            flash("Password must be at least 6 characters.")
+        if len(password) < 8:
+            flash("Password must be at least 8 characters.")
+            return render_template("signup.html")
+
+        if not re.search(r"[A-Z]", password):
+            flash("Password must contain an uppercase letter.")
+            return render_template("signup.html")
+
+        if not re.search(r"[a-z]", password):
+            flash("Password must contain a lowercase letter.")
+            return render_template("signup.html")
+
+        if not re.search(r"\d", password):
+            flash("Password must contain a number.")
             return render_template("signup.html")
 
         if get_user_by_email(email):
