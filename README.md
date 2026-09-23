@@ -4,7 +4,18 @@ A multi-agent AI system that answers student questions about university fees, ac
 
 ---
 
-# Problem Statement
+## Team Members
+
+| Name | Role |
+|------|------|
+| Madhav Taneja | Team Leader — Campus & Hostel Agent |
+| Dhruv Kaushik | Router Agent + Azure AI Search + Microsoft Foundry |
+| Aryan Harit | Fees & Academics Agent + Deployment + Azure AI Search |
+| Mayank Jindal | Placement Agent |
+
+---
+
+## Problem Statement
 
 University students frequently have questions spanning multiple domains — tuition fees, academic policies, placement records, hostel facilities, and campus life. Traditionally, students must navigate separate offices, portals, and staff members to get answers — a slow, fragmented, and often inconsistent experience. Staff handling repetitive queries wastes administrative time, and students often receive outdated information.
 
@@ -12,7 +23,7 @@ This project solves that by providing a single, accurate, always-available FAQ a
 
 ---
 
-# Solution Overview
+## Solution Overview
 
 The system is a Flask-based web application backed by a multi-agent pipeline. A student types a question into the chat UI; the question is sent to a Flask API endpoint and passed to a **Router Agent** that classifies it into one of four domains (fees & academics, placements, campus & hostel, or accounts/admin). A **Specialist Agent** for the identified domain retrieves context from a local Markdown FAQ knowledge base and synthesises a preliminary answer. The question is then sent to a **Microsoft Foundry Agent**, which uses **Foundry IQ → Azure AI Search** to retrieve grounded answers from indexed university documents — this is the primary answer source. The final answer (cleaned of citation markers) is returned to the frontend together with exactly three AI-generated follow-up questions.
 
@@ -223,6 +234,7 @@ FOUNDRY_AGENT_NAME=
 
 > `FOUNDRY_PROJECT_ENDPOINT` and `FOUNDRY_AGENT_NAME` must point to your deployed Foundry project and agent. Azure AI Search is configured as a connected knowledge source within the Foundry project itself — no separate search credentials are required in `.env`.
 
+---
 
 ## Running the Application
 
@@ -232,16 +244,123 @@ python -m venv venv
 venv\Scripts\activate      # Windows
 source venv/bin/activate   # macOS / Linux
 
-pip install flask python-dotenv openai azure-identity azure-ai-projects requests pytest gunicorn
+# Install dependencies
+pip install -r requirements.txt
 
 # Run the Flask web server
 python app.py
 # Open http://127.0.0.1:5000 in your browser
 
+# Run the CLI (interactive mode)
+python main.py
+
+# Run tests
+pytest tests/
+```
 
 > On first run, `InteractiveBrowserCredential` will open a browser window for Microsoft login to authenticate with Azure AI Foundry.
 
+---
 
+## Screenshots
+
+### Azure AI Search — Knowledge Source Configuration
+
+The knowledge source `university-faq-knowledge` is configured inside Microsoft Foundry with the index `university-faq-knowledge-index`. It uses the `text-embedding-3-small` model for text vectorisation and holds all indexed university documents. All files show status **Ready**, confirming successful indexing.
+
+![Azure AI Search Knowledge Source](docs/screenshots/azure_ai_search_knowledge_source.jpeg)
+
+> **Files indexed:** `Fee_Notification_July-Dec_2026_AISearch.pdf`, `University_FAQ_Academics_AzureAI_NormalData`, `Hostel-Rules-2023-24.pdf`, `Chitkara_Fee_Brochure_Azure_AI_Search_Normal`, `campus_hostel.md`, `engineering-brochure-2026-azure-compact.pdf`, `placements.md`
+
+---
+
+### Azure AI Foundry — Resource Overview
+
+The Foundry resource `universityfaq-azure-2026` is deployed under **CHITKARA UNIVERSITY** in the `koreacentral` region, linked to the `Azure for Students` subscription. API Kind is `AIServices` with status `Succeeded`.
+
+![Azure Foundry Resource](docs/screenshots/azure_foundry_resource.jpeg)
+
+---
+
+### Application Demo — Hostel Facilities Query (Dark Mode)
+
+A student asks *"What are the hostel facilities?"* The system routes the question to the **Campus & Hostel** agent, retrieves a grounded answer from the indexed university documents via Azure AI Search, and returns a structured response with three auto-generated follow-up questions.
+
+![App Demo - Hostel Query](docs/screenshots/app_hostel_query.jpeg)
+
+---
+
+### Application Demo — Placement Process Query (Light Mode)
+
+A student asks *"What is the placement process?"* The system routes the question to the **Placements** agent and returns a step-by-step answer covering drives, screening, selection stages, industry network, and industry-readiness preparation. The UI supports both light and dark themes.
+
+![App Demo - Placement Query](docs/screenshots/app_placement_query.png)
+
+---
+
+---
+
+## Additional Screenshots — Setup, Auth & Data Storage
+
+This section captures the full picture of the deployed system: how the Azure AI Search knowledge source and Azure AI Foundry resource are configured, what the chat assistant looks like in use, and the **Sign Up / Sign In flow** that now sits in front of the chat assistant. The project is now entered through authentication first — a student creates an account or signs in before reaching the chat UI — and user accounts are persisted in a local **SQLite** database (`data/database.db`) rather than any external service.
+
+### Azure AI Search — Knowledge Source (`university-faq-knowledge`)
+
+The knowledge source is configured inside Microsoft Foundry with the index `university-faq-knowledge-index`, using the `text-embedding-3-small` deployment for text vectorisation. All source documents — fee notifications, academic FAQs, hostel rules, fee brochures, the engineering brochure, and the `campus_hostel.md` / `placements.md` knowledge files — show status **Ready**, confirming they are fully indexed and searchable.
+
+![Azure AI Search knowledge source configuration](docs/azure_ai_search_knowledge_source.jpeg)
+
+### Azure AI Foundry — Resource Overview (`universityfaq-azure-2026`)
+
+The Foundry resource is deployed under **CHITKARA UNIVERSITY**, in the `koreacentral` region, under the `Azure for Students` subscription. Its API Kind is `AIServices` and its provisioning status is `Succeeded`, confirming the resource backing the Router → Specialist → Foundry pipeline is live and reachable.
+
+![Azure AI Foundry resource overview](docs/azure_foundry_resource.jpeg)
+
+### Chat Assistant — Hostel Facilities Query (Dark Mode)
+
+A student asks *"What are the hostel facilities?"*. The Router Agent classifies the question into the **Campus & Hostel** domain, the answer is grounded via Azure AI Search, and the assistant returns a structured, bulleted response along with three auto-generated follow-up questions.
+
+![Chat assistant answering a hostel facilities query in dark mode](docs/app_hostel_query_dark.jpeg)
+
+### Chat Assistant — Placement Process Query (Light Mode)
+
+A student asks *"What is the placement process?"*. The **Placements** agent returns a numbered, step-by-step explanation of drives, recruiter screening, selection stages, and industry readiness. The same interface supports both light and dark themes.
+
+![Chat assistant answering a placement process query in light mode](docs/app_placement_query_light.png)
+
+### Sign Up — Create an Account
+
+Before reaching the chat assistant, a new student creates an account with their **full name, email, university roll number, and password**. Password strength rules (minimum 8 characters, uppercase, lowercase, and a number) are enforced client-side before the account is created.
+
+![Sign up page for the University FAQ Assistant](docs/signup_page.jpeg)
+
+### Sign In — Welcome Back
+
+Returning students sign in with their registered email and password. On successful authentication, the student is taken straight into the chat assistant shown above — **the application now starts from this Sign Up / Sign In flow**, not directly at the chat screen.
+
+![Sign in page for the University FAQ Assistant](docs/login_page.jpeg)
+
+### SQLite — Stored User Data (`data/database.db`)
+
+User accounts created via Sign Up are persisted locally in a **SQLite** database. The `users` table (viewed here in DB Browser for SQLite) stores `id`, `name`, `email`, `roll_number`, a hashed `password_hash` (via `scrypt`), and `created_at` — no plaintext passwords are ever stored.
+
+![DB Browser for SQLite showing the users table](docs/sqlite_users_table.jpeg)
+
+### Auth & Storage — Files Added
+
+The table below maps the new authentication flow to the files and layers it lives in:
+
+| File | Layer |
+|------|-------|
+| `signup.html` | Frontend |
+| `index.html` | Frontend |
+| `auth.py` | Backend |
+| `db.py` | Database schema |
+| `data/database.db` | Database |
+
+For further implementation details on authentication, password hashing, and the SQLite schema, refer to `auth.py` and `db.py` directly in the repository.
+
+---
 
 ## Responsible AI
 
