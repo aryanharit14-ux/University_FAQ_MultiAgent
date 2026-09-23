@@ -590,3 +590,14 @@ function scrollToBottom() {
 loadTheme();
 updateCounter();
 
+/* -------------------------
+   Logout
+   ------------------------- */
+
+const logoutBtn = document.getElementById("logoutBtn");
+
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+        window.location.href = "/logout";
+    });
+}
