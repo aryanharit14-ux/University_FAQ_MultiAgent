@@ -1,4 +1,7 @@
 from flask import Flask, jsonify, render_template, request
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from agents.router import (
     handle_question,
